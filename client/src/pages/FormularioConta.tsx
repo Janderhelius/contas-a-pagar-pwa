@@ -19,6 +19,9 @@ import { validarConta, temErros } from '@/lib/validacoes';
 import { parseDataBrasileira, formatarData } from '@/lib/formatadores';
 import { ArrowLeft, Save, Home } from 'lucide-react';
 import { Link } from 'wouter';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { UnsavedChangesDialog, ConfirmDiscardDialog, UnsavedIndicator } from '@/components/UnsavedChangesDialog';
+import { useEffect as useEffectRef } from 'react';
 
 export default function FormularioConta() {
   const [, paramsNova] = useRoute('/contas/nova');
@@ -55,6 +58,11 @@ export default function FormularioConta() {
 
   const [erros, setErros] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
+  const [initialFormData, setInitialFormData] = useState(formData);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [unsavedError, setUnsavedError] = useState<string | null>(null);
 
   // Carrega dados da conta se estiver editando
   useEffect(() => {
@@ -81,6 +89,42 @@ export default function FormularioConta() {
       });
     }
   }, [contaExistente]);
+
+  // Detectar alterações
+  useEffect(() => {
+    const isDifferent = JSON.stringify(formData) !== JSON.stringify(initialFormData);
+    setIsDirty(isDifferent);
+  }, [formData, initialFormData]);
+
+  // Interceptar beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
+
+  const handleNavigateHome = (e: React.MouseEvent) => {
+    if (isDirty) {
+      e.preventDefault();
+      setShowUnsavedDialog(true);
+    }
+  };
+
+  const handleNavigateCancel = (e: React.MouseEvent) => {
+    if (isDirty) {
+      e.preventDefault();
+      setShowUnsavedDialog(true);
+    }
+  };
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -186,23 +230,29 @@ export default function FormularioConta() {
         }
       }
 
+      // Atualizar snapshot e limpar dirty
+      setInitialFormData(formData);
+      setIsDirty(false);
+
       // Redirecionar para lista
       window.location.href = '/contas';
     } catch (erro) {
       console.error('Erro ao salvar conta:', erro);
       toast.error('Erro ao salvar conta');
-    } finally {
       setSalvando(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      {/* Indicador de não salvo */}
+      <UnsavedIndicator isDirty={isDirty} isSaving={salvando} />
+
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/contas">
+            <Link href="/contas" onClick={handleNavigateCancel}>
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
@@ -211,7 +261,7 @@ export default function FormularioConta() {
               {isEdicao ? 'Editar Conta' : 'Nova Conta'}
             </h1>
           </div>
-          <Link href="/">
+          <Link href="/" onClick={handleNavigateHome}>
             <Button variant="outline" size="sm" className="gap-2">
               <Home className="w-4 h-4" />
               Início
@@ -507,16 +557,50 @@ export default function FormularioConta() {
 
           {/* Botões de Ação */}
           <div className="flex gap-4">
-            <Link href="/contas">
+            <Link href="/contas" onClick={handleNavigateCancel}>
               <Button variant="outline">Cancelar</Button>
             </Link>
-            <Button type="submit" disabled={salvando} className="gap-2">
+            <Button 
+              type="submit" 
+              disabled={salvando || !isDirty} 
+              className="gap-2"
+            >
               <Save className="w-4 h-4" />
               {salvando ? 'Salvando...' : isEdicao ? 'Atualizar' : 'Criar Conta'}
             </Button>
           </div>
         </form>
       </main>
+
+      {/* Diálogos de confirmação */}
+      <UnsavedChangesDialog
+        isOpen={showUnsavedDialog}
+        isLoading={salvando}
+        error={unsavedError}
+        onSaveAndExit={async () => {
+          await handleSubmit({} as React.FormEvent);
+        }}
+        onDiscardAndExit={() => {
+          setShowUnsavedDialog(false);
+          setShowConfirmDiscard(true);
+        }}
+        onContinueEditing={() => {
+          setShowUnsavedDialog(false);
+        }}
+        onClearError={() => setUnsavedError(null)}
+      />
+
+      <ConfirmDiscardDialog
+        isOpen={showConfirmDiscard}
+        onConfirmDiscard={() => {
+          setIsDirty(false);
+          window.location.href = '/contas';
+        }}
+        onCancel={() => {
+          setShowConfirmDiscard(false);
+          setShowUnsavedDialog(true);
+        }}
+      />
     </div>
   );
 }

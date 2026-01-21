@@ -15,7 +15,8 @@ import { toast } from 'sonner';
 import { formatarMoeda, formatarData, obterIconeCategoria, descricaoDiasRestantes } from '@/lib/formatadores';
 import { parseDataBrasileira } from '@/lib/formatadores';
 import { ArrowLeft, Home, Edit2, Trash2, Check, X } from 'lucide-react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
+import { UnsavedIndicator } from '@/components/UnsavedChangesDialog';
 
 export default function DetalhesConta() {
   const [, params] = useRoute('/contas/:id');
@@ -25,10 +26,12 @@ export default function DetalhesConta() {
   const contaId = params?.id;
   const conta = contaId ? obterConta(contaId) : null;
 
+  const [, setLocation] = useLocation();
   const [modalAberto, setModalAberto] = useState(false);
   const [dataPagamento, setDataPagamento] = useState(formatarData(new Date()));
   const [valorPago, setValorPago] = useState(conta?.valor.toString() || '0');
   const [carregando, setCarregando] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     if (conta) {
@@ -36,8 +39,34 @@ export default function DetalhesConta() {
       if (conta.dataPagamento) {
         setDataPagamento(formatarData(conta.dataPagamento));
       }
+      setIsDirty(false);
     }
   }, [conta]);
+
+  // Detectar alteracoes
+  useEffect(() => {
+    if (conta) {
+      const dataPagamentoChanged = formatarData(conta.dataPagamento || new Date()) !== dataPagamento;
+      const valorPagoChanged = (conta.valorPago?.toString() || conta.valor.toString()) !== valorPago;
+      setIsDirty(dataPagamentoChanged || valorPagoChanged);
+    }
+  }, [dataPagamento, valorPago, conta]);
+
+  // Interceptar beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   if (!conta) {
     return (
@@ -122,18 +151,29 @@ export default function DetalhesConta() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      {/* Indicador de não salvo */}
+      <UnsavedIndicator isDirty={isDirty} isSaving={carregando} />
+
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/contas">
+            <Link href="/contas" onClick={(e) => {
+              if (isDirty && !confirm('Você tem alterações não salvas. Deseja sair?')) {
+                e.preventDefault();
+              }
+            }}>
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
             <h1 className="text-2xl font-bold text-gray-900">Detalhes da Conta</h1>
           </div>
-          <Link href="/">
+          <Link href="/" onClick={(e) => {
+            if (isDirty && !confirm('Você tem alterações não salvas. Deseja sair?')) {
+              e.preventDefault();
+            }
+          }}>
             <Button variant="outline" size="sm" className="gap-2">
               <Home className="w-4 h-4" />
               Início
