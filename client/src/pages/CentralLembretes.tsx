@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'wouter';
 import { formatarData, formatarMoeda, obterIconeCategoria, descricaoDiasRestantes } from '@/lib/formatadores';
-import { ArrowLeft, Bell, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ArrowLeft, Bell, Trash2, ToggleLeft, ToggleRight, Home } from 'lucide-react';
 import { useState } from 'react';
 
 export default function CentralLembretes() {
@@ -47,13 +47,21 @@ export default function CentralLembretes() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-        <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
+        <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/contas">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold text-gray-900">Central de Lembretes</h1>
+          </div>
           <Link href="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4" />
+            <Button variant="outline" size="sm" className="gap-2">
+              <Home className="w-4 h-4" />
+              Início
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Central de Lembretes</h1>
         </div>
       </header>
 

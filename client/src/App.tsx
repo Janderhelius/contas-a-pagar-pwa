@@ -11,6 +11,7 @@ import Home from "./pages/Home";
 import ListaContas from "./pages/ListaContas";
 import FormularioConta from "./pages/FormularioConta";
 import CentralLembretes from "./pages/CentralLembretes";
+import DetalhesConta from "./pages/DetalhesConta";
 import Configuracoes from "./pages/Configuracoes";
 
 function Router() {
@@ -19,7 +20,8 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/contas"} component={ListaContas} />
       <Route path={"/contas/nova"} component={FormularioConta} />
-      <Route path={"/contas/:id"} component={FormularioConta} />
+      <Route path={"/contas/:id/editar"} component={FormularioConta} />
+      <Route path={"/contas/:id"} component={DetalhesConta} />
       <Route path={"/lembretes"} component={CentralLembretes} />
       <Route path={"/configuracoes"} component={Configuracoes} />
       <Route path={"/404"} component={NotFound} />

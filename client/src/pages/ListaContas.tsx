@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'wouter';
 import { formatarMoeda, formatarData, obterIconeCategoria, descricaoDiasRestantes } from '@/lib/formatadores';
 import { CATEGORIAS_PADRAO, StatusConta } from '@/lib/types';
-import { Plus, Search, Filter, Trash2, Edit2, Check } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Edit2, Check, Home } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -120,12 +120,20 @@ export default function ListaContas() {
             <h1 className="text-3xl font-bold text-gray-900">Todas as Contas</h1>
             <p className="text-sm text-gray-600 mt-1">{contasFiltradas.length} contas encontradas</p>
           </div>
-          <Link href="/contas/nova">
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" />
-              Nova Conta
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Home className="w-4 h-4" />
+                Início
+              </Button>
+            </Link>
+            <Link href="/contas/nova">
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Nova Conta
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -290,6 +298,11 @@ export default function ListaContas() {
                     </div>
 
                     <div className="flex gap-2 flex-shrink-0">
+                      <Link href={`/contas/${conta.id}`}>
+                        <Button variant="ghost" size="sm" className="gap-2">
+                          Ver Detalhes
+                        </Button>
+                      </Link>
                       {conta.status !== 'Pago' && (
                         <Button
                           size="sm"
@@ -301,9 +314,10 @@ export default function ListaContas() {
                           <Check className="w-4 h-4" />
                         </Button>
                       )}
-                      <Link href={`/contas/${conta.id}`}>
-                        <Button size="sm" variant="ghost">
+                      <Link href={`/contas/${conta.id}/editar`}>
+                        <Button variant="ghost" size="sm" className="gap-2">
                           <Edit2 className="w-4 h-4" />
+                          Editar
                         </Button>
                       </Link>
                       <Button

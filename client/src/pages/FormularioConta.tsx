@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useContas } from '@/contexts/ContasContext';
 import { useLembretes } from '@/contexts/LembretesContext';
-import { useRoute } from 'wouter';
+import { useRoute, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,17 +17,20 @@ import { toast } from 'sonner';
 import { CATEGORIAS_PADRAO, FormaPagamento, TipoRecorrencia } from '@/lib/types';
 import { validarConta, temErros } from '@/lib/validacoes';
 import { parseDataBrasileira, formatarData } from '@/lib/formatadores';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Home } from 'lucide-react';
 import { Link } from 'wouter';
 
 export default function FormularioConta() {
-  const [, params] = useRoute('/contas/:id');
+  const [, paramsNova] = useRoute('/contas/nova');
+  const [, paramsEditar] = useRoute('/contas/:id/editar');
+  const params = paramsEditar || paramsNova;
+  const [, setLocation] = useLocation();
   const { contas, adicionarConta, atualizarConta, obterConta } = useContas();
   const { adicionarLembrete, deletarLembretesPorConta, obterLembretesPorConta } = useLembretes();
 
-  const contaId = params?.id;
-  const isEdicao = contaId && contaId !== 'nova';
-  const contaExistente = isEdicao ? obterConta(contaId) : null;
+  const contaId = paramsEditar ? (paramsEditar as any).id : undefined;
+  const isEdicao = !!contaId;
+  const contaExistente = isEdicao ? obterConta(contaId!) : null;
 
   const [formData, setFormData] = useState({
     titulo: '',
@@ -45,6 +48,9 @@ export default function FormularioConta() {
     diasAntes: '1',
     horarioLembrete: '09:00',
     repetirSeAtrasado: false,
+    jaFoiPaga: false,
+    dataPagamento: formatarData(new Date()),
+    valorPago: '',
   });
 
   const [erros, setErros] = useState<Record<string, string>>({});
@@ -69,6 +75,9 @@ export default function FormularioConta() {
         diasAntes: '1',
         horarioLembrete: '09:00',
         repetirSeAtrasado: false,
+        jaFoiPaga: contaExistente.status === 'Pago',
+        dataPagamento: contaExistente.dataPagamento ? formatarData(contaExistente.dataPagamento) : formatarData(new Date()),
+        valorPago: contaExistente.valorPago?.toString() || '',
       });
     }
   }, [contaExistente]);
@@ -93,6 +102,18 @@ export default function FormularioConta() {
       // Validação
       const dataEmissao = parseDataBrasileira(formData.dataEmissao);
       const dataVencimento = parseDataBrasileira(formData.dataVencimento);
+      
+      // Se marcado como pago, validar data de pagamento
+      let dataPagamento: Date | undefined;
+      if (formData.jaFoiPaga) {
+        if (!formData.dataPagamento) {
+          setErros({ dataPagamento: 'Data de pagamento é obrigatória' });
+          toast.error('Data de pagamento é obrigatória');
+          setSalvando(false);
+          return;
+        }
+        dataPagamento = parseDataBrasileira(formData.dataPagamento);
+      }
 
       const contaParaValidar = {
         titulo: formData.titulo,
@@ -108,7 +129,9 @@ export default function FormularioConta() {
           tipo: formData.recorrencia as TipoRecorrencia,
           intervalo: formData.recorrencia === 'Personalizada' ? Number(formData.intervaloRecorrencia) : undefined,
         },
-        status: 'Pendente' as const,
+        status: (formData.jaFoiPaga ? 'Pago' : 'Pendente') as 'Pago' | 'Pendente' | 'Atrasado',
+        dataPagamento: dataPagamento,
+        valorPago: formData.jaFoiPaga ? Number(formData.valorPago || formData.valor) : undefined,
       };
 
       const novosErros = validarConta(contaParaValidar, []);
@@ -123,19 +146,19 @@ export default function FormularioConta() {
         // Atualizar conta
         await atualizarConta(contaExistente.id, {
           ...contaParaValidar,
-          status: contaExistente.status,
+          status: formData.jaFoiPaga ? 'Pago' : 'Pendente',
         });
         toast.success('Conta atualizada com sucesso!');
       } else {
         // Criar nova conta
         await adicionarConta({
           ...contaParaValidar,
-          status: 'Pendente',
+          status: formData.jaFoiPaga ? 'Pago' : 'Pendente',
         });
         toast.success('Conta criada com sucesso!');
 
-        // Criar lembrete se solicitado
-        if (formData.criarLembrete) {
+        // Criar lembrete se solicitado e não for paga
+        if (formData.criarLembrete && !formData.jaFoiPaga) {
           const proximaNotificacao = new Date(dataVencimento);
           const [hora, minuto] = formData.horarioLembrete.split(':').map(Number);
           proximaNotificacao.setHours(hora, minuto, 0, 0);
@@ -177,15 +200,23 @@ export default function FormularioConta() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-        <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/contas">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4" />
+        <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/contas">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isEdicao ? 'Editar Conta' : 'Nova Conta'}
+            </h1>
+          </div>
+          <Link href="/">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Home className="w-4 h-4" />
+              Início
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {isEdicao ? 'Editar Conta' : 'Nova Conta'}
-          </h1>
         </div>
       </header>
 
@@ -318,6 +349,57 @@ export default function FormularioConta() {
             </CardContent>
           </Card>
 
+          {/* Status de Pagamento */}
+          <Card className="bg-white border-green-200">
+            <CardHeader>
+              <CardTitle className="text-green-700">Já foi paga?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="jaFoiPaga"
+                  checked={formData.jaFoiPaga}
+                  onCheckedChange={(checked) => handleChange('jaFoiPaga', checked)}
+                />
+                <Label htmlFor="jaFoiPaga" className="cursor-pointer font-medium">
+                  Esta conta já foi paga
+                </Label>
+              </div>
+
+              {formData.jaFoiPaga && (
+                <div className="space-y-4 pl-6 border-l-2 border-green-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="dataPagamento">Data de Pagamento *</Label>
+                      <Input
+                        id="dataPagamento"
+                        type="text"
+                        placeholder="DD/MM/YYYY"
+                        value={formData.dataPagamento}
+                        onChange={(e) => handleChange('dataPagamento', e.target.value)}
+                        className={erros.dataPagamento ? 'border-red-500' : ''}
+                      />
+                      {erros.dataPagamento && <p className="text-xs text-red-500 mt-1">{erros.dataPagamento}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="valorPago">Valor Pago (BRL)</Label>
+                      <Input
+                        id="valorPago"
+                        type="number"
+                        step="0.01"
+                        value={formData.valorPago || formData.valor}
+                        onChange={(e) => handleChange('valorPago', e.target.value)}
+                        placeholder="0.00"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Se deixar em branco, usará o valor da conta</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Recorrência */}
           <Card className="bg-white">
             <CardHeader>
@@ -355,8 +437,8 @@ export default function FormularioConta() {
             </CardContent>
           </Card>
 
-          {/* Lembretes (apenas para novas contas) */}
-          {!isEdicao && (
+          {/* Lembretes (apenas para novas contas não pagas) */}
+          {!isEdicao && !formData.jaFoiPaga && (
             <Card className="bg-white">
               <CardHeader>
                 <CardTitle>Configurar Lembrete</CardTitle>
