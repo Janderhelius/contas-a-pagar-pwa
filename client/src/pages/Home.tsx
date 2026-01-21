@@ -11,11 +11,25 @@ import { Link } from 'wouter';
 import { formatarMoeda, formatarData, obterIconeCategoria } from '@/lib/formatadores';
 import { CATEGORIAS_PADRAO } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Plus, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, AlertCircle, CheckCircle2, Clock, Check } from 'lucide-react';
 
 export default function Home() {
-  const { contas, carregando } = useContas();
+  const { contas, carregando, atualizarConta } = useContas();
   const { lembretes } = useLembretes();
+
+  const handleMarcarComoPago = async (conta: any, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await atualizarConta(conta.id, {
+        status: 'Pago',
+        dataPagamento: new Date(),
+        valorPago: conta.valor,
+      });
+    } catch (erro) {
+      console.error('Erro ao marcar como pago:', erro);
+    }
+  };
 
   if (carregando) {
     return (
@@ -105,42 +119,28 @@ export default function Home() {
       <main className="container max-w-7xl mx-auto px-4 py-8">
         {/* Alertas */}
         {vencendoHoje.length > 0 && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
-            <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+          <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-yellow-900">
-                {vencendoHoje.length} conta(s) vencendo hoje
-              </h3>
-              <p className="text-sm text-yellow-800">
-                {vencendoHoje.map(c => c.titulo).join(', ')}
+              <h3 className="font-semibold text-yellow-900">Contas vencendo hoje</h3>
+              <p className="text-sm text-yellow-800 mt-1">
+                {vencendoHoje.length} conta(s) vence(m) hoje. Verifique a lista abaixo.
               </p>
             </div>
           </div>
         )}
 
-        {contasAtrasadas.length > 0 && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-red-900">
-                {contasAtrasadas.length} conta(s) atrasada(s)
-              </h3>
-              <p className="text-sm text-red-800">
-                Total: {formatarMoeda(totalAtrasado)}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {/* Resumo Financeiro */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="bg-white">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">Total do Mês</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">{formatarMoeda(totalMes)}</div>
-              <p className="text-xs text-gray-500 mt-1">{contasMes.length} contas</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {contasMes.length} contas
+              </p>
             </CardContent>
           </Card>
 
@@ -193,23 +193,30 @@ export default function Home() {
                 ) : (
                   <div className="space-y-3">
                     {proximosVencimentos.map(conta => (
-                      <Link key={conta.id} href={`/contas/${conta.id}`}>
-                        <div className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition cursor-pointer">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{obterIconeCategoria(conta.categoria)}</span>
-                                <h4 className="font-semibold text-gray-900">{conta.titulo}</h4>
-                              </div>
-                              <p className="text-sm text-gray-600 mt-1">{conta.beneficiario}</p>
+                      <div key={conta.id} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition flex items-center justify-between gap-3">
+                        <Link href={`/contas/${conta.id}`} className="flex-1 min-w-0">
+                          <div className="cursor-pointer">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg flex-shrink-0">{obterIconeCategoria(conta.categoria)}</span>
+                              <h4 className="font-semibold text-gray-900 truncate">{conta.titulo}</h4>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-gray-900">{formatarMoeda(conta.valor)}</p>
-                              <p className="text-xs text-gray-500">{formatarData(conta.dataVencimento)}</p>
-                            </div>
+                            <p className="text-sm text-gray-600 mt-1 truncate">{conta.beneficiario}</p>
                           </div>
+                        </Link>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-bold text-gray-900">{formatarMoeda(conta.valor)}</p>
+                          <p className="text-xs text-gray-500">{formatarData(conta.dataVencimento)}</p>
                         </div>
-                      </Link>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50 flex-shrink-0"
+                          onClick={(e) => handleMarcarComoPago(conta, e)}
+                          title="Marcar como pago"
+                        >
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 )}

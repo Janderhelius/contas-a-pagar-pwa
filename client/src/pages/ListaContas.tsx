@@ -9,14 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'wouter';
 import { formatarMoeda, formatarData, obterIconeCategoria, descricaoDiasRestantes } from '@/lib/formatadores';
 import { CATEGORIAS_PADRAO, StatusConta } from '@/lib/types';
-import { Plus, Search, Filter, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Edit2, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
 export default function ListaContas() {
-  const { contas, carregando, deletarConta } = useContas();
+  const { contas, carregando, deletarConta, atualizarConta } = useContas();
   const [busca, setBusca] = useState('');
   const [statusFiltro, setStatusFiltro] = useState<StatusConta[]>(['Pendente', 'Atrasado']);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string[]>([]);
@@ -85,6 +85,18 @@ export default function ListaContas() {
   const handleDeletar = async (id: string) => {
     if (confirm('Tem certeza que deseja deletar esta conta?')) {
       await deletarConta(id);
+    }
+  };
+
+  const handleMarcarComoPago = async (conta: any) => {
+    try {
+      await atualizarConta(conta.id, {
+        status: 'Pago',
+        dataPagamento: new Date(),
+        valorPago: conta.valor,
+      });
+    } catch (erro) {
+      console.error('Erro ao marcar como pago:', erro);
     }
   };
 
@@ -278,6 +290,17 @@ export default function ListaContas() {
                     </div>
 
                     <div className="flex gap-2 flex-shrink-0">
+                      {conta.status !== 'Pago' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => handleMarcarComoPago(conta)}
+                          title="Marcar como pago"
+                        >
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Link href={`/contas/${conta.id}`}>
                         <Button size="sm" variant="ghost">
                           <Edit2 className="w-4 h-4" />
