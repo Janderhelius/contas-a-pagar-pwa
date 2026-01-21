@@ -1,7 +1,7 @@
 {
-  "name": "Meu Controle de Contas",
-  "short_name": "Contas",
-  "description": "Aplicativo para gerenciar contas a pagar com lembretes e notificações",
+  "name": "Vencio - Contas a Pagar",
+  "short_name": "Vencio",
+  "description": "Vencio - Seu gerenciador pessoal de contas a pagar com lembretes inteligentes e notificações",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

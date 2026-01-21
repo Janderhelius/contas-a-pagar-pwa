@@ -104,8 +104,8 @@ export default function Home() {
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Meu Controle de Contas</h1>
-            <p className="text-sm text-gray-600 mt-1">Gerencie suas contas a pagar com facilidade</p>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Vencio</h1>
+              <p className="text-gray-600">Seu gerenciador pessoal de contas a pagar</p>
           </div>
           <Link href="/contas/nova">
             <Button className="gap-2">

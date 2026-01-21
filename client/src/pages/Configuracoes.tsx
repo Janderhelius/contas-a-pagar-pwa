@@ -3,6 +3,8 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { UnsavedIndicator } from '@/components/UnsavedChangesDialog';
 import { db, exportarDados, importarDados, limparBancoDados } from '@/lib/db';
 import { hashSenha, verificarSenha } from '@/lib/crypto';
 import { Button } from '@/components/ui/button';
@@ -23,6 +25,8 @@ export default function Configuracoes() {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [notificacoesAtivas, setNotificacoesAtivas] = useState(true);
   const [temaEscuro, setTemaEscuro] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [, setLocation] = useLocation();
 
   // Carrega configurações ao montar
   useEffect(() => {
@@ -42,7 +46,33 @@ export default function Configuracoes() {
     };
 
     carregarConfiguracoes();
+    setIsDirty(false);
   }, []);
+
+  // Detectar alteracoes
+  useEffect(() => {
+    if (configuracoes) {
+      const senhaChanged = senhaAtual !== '' || novaSenha !== '' || confirmarSenha !== '';
+      const notificacoesChanged = notificacoesAtivas !== configuracoes.notificacoesAtivas;
+      setIsDirty(senhaChanged || notificacoesChanged);
+    }
+  }, [senhaAtual, novaSenha, confirmarSenha, notificacoesAtivas, configuracoes]);
+
+  // Interceptar beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   const handleExportarJSON = async () => {
     try {
@@ -163,18 +193,29 @@ export default function Configuracoes() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      {/* Indicador de não salvo */}
+      <UnsavedIndicator isDirty={isDirty} isSaving={false} />
+
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/">
+            <Link href="/" onClick={(e) => {
+              if (isDirty && !confirm('Você tem alterações não salvas. Deseja sair?')) {
+                e.preventDefault();
+              }
+            }}>
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
             <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
           </div>
-          <Link href="/">
+          <Link href="/" onClick={(e) => {
+            if (isDirty && !confirm('Você tem alterações não salvas. Deseja sair?')) {
+              e.preventDefault();
+            }
+          }}>
             <Button variant="outline" size="sm" className="gap-2">
               <Home className="w-4 h-4" />
               Início
