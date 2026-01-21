@@ -4,13 +4,24 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { ContasProvider } from "./contexts/ContasContext";
+import { LembretesProvider } from "./contexts/LembretesContext";
+import NotificacoesMonitor from "./components/NotificacoesMonitor";
 import Home from "./pages/Home";
-
+import ListaContas from "./pages/ListaContas";
+import FormularioConta from "./pages/FormularioConta";
+import CentralLembretes from "./pages/CentralLembretes";
+import Configuracoes from "./pages/Configuracoes";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/contas"} component={ListaContas} />
+      <Route path={"/contas/nova"} component={FormularioConta} />
+      <Route path={"/contas/:id"} component={FormularioConta} />
+      <Route path={"/lembretes"} component={CentralLembretes} />
+      <Route path={"/configuracoes"} component={Configuracoes} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -18,22 +29,19 @@ function Router() {
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+      <ThemeProvider defaultTheme="light">
+        <ContasProvider>
+          <LembretesProvider>
+            <NotificacoesMonitor />
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </LembretesProvider>
+        </ContasProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
