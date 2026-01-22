@@ -256,7 +256,7 @@ export default function Home() {
         </div>
 
         {/* Ações Rápidas */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
           <Link href="/contas">
             <Button variant="outline" className="w-full justify-center">
               Ver Todas as Contas
@@ -265,6 +265,11 @@ export default function Home() {
           <Link href="/lembretes">
             <Button variant="outline" className="w-full justify-center">
               Central de Lembretes
+            </Button>
+          </Link>
+          <Link href="/relatorios">
+            <Button variant="outline" className="w-full justify-center">
+              Relatórios
             </Button>
           </Link>
           <Link href="/configuracoes">

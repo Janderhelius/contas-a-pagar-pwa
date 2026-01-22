@@ -13,6 +13,7 @@ import FormularioConta from "./pages/FormularioConta";
 import CentralLembretes from "./pages/CentralLembretes";
 import DetalhesConta from "./pages/DetalhesConta";
 import Configuracoes from "./pages/Configuracoes";
+import Relatorios from "./pages/Relatorios";
 
 function Router() {
   return (
@@ -24,6 +25,7 @@ function Router() {
       <Route path={"/contas/:id"} component={DetalhesConta} />
       <Route path={"/lembretes"} component={CentralLembretes} />
       <Route path={"/configuracoes"} component={Configuracoes} />
+      <Route path={"/relatorios"} component={Relatorios} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
