@@ -5,6 +5,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { UnsavedIndicator } from '@/components/UnsavedChangesDialog';
+import { useDraftAutoSave } from '@/hooks/useDraftAutoSave';
+import { DraftAutoSaveIndicator } from '@/components/DraftRecoveryDialog';
 import { db, exportarDados, importarDados, limparBancoDados } from '@/lib/db';
 import { hashSenha, verificarSenha } from '@/lib/crypto';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,21 @@ export default function Configuracoes() {
   const [temaEscuro, setTemaEscuro] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [, setLocation] = useLocation();
+
+  // Auto-save de rascunho para configurações
+  const dadosRascunho = {
+    senhaAtual,
+    novaSenha,
+    confirmarSenha,
+    notificacoesAtivas,
+  };
+
+  const { salvando: salvandoRascunho, ultimoSalvo, limparRascunho } = useDraftAutoSave({
+    rascunhoId: 'configuracoes',
+    dados: dadosRascunho,
+    ativo: isDirty,
+    intervalo: 30000,
+  });
 
   // Carrega configurações ao montar
   useEffect(() => {
@@ -143,6 +160,7 @@ export default function Configuracoes() {
       setSenhaAtual('');
       setNovaSenha('');
       setConfirmarSenha('');
+      await limparRascunho();
       toast.success('Senha atualizada com sucesso!');
     } catch (erro) {
       console.error('Erro ao atualizar senha:', erro);
@@ -160,6 +178,7 @@ export default function Configuracoes() {
 
       await db.configuracoes.update('config', novaConfig);
       setConfiguracoes(novaConfig);
+      await limparRascunho();
       toast.success('Configurações atualizadas!');
     } catch (erro) {
       console.error('Erro ao atualizar configurações:', erro);
@@ -195,6 +214,9 @@ export default function Configuracoes() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Indicador de não salvo */}
       <UnsavedIndicator isDirty={isDirty} isSaving={false} />
+
+      {/* Indicador de auto-save */}
+      <DraftAutoSaveIndicator salvando={salvandoRascunho} ultimoSalvo={ultimoSalvo} />
 
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">

@@ -5,10 +5,18 @@
 import Dexie, { Table } from 'dexie';
 import { Conta, Lembrete, Configuracoes } from './types';
 
+export interface Rascunho {
+  id: string; // 'formularioConta', 'detalhesConta', 'configuracoes'
+  dados: Record<string, any>;
+  criadoEm: Date;
+  atualizadoEm: Date;
+}
+
 export class ContasDB extends Dexie {
   contas!: Table<Conta>;
   lembretes!: Table<Lembrete>;
   configuracoes!: Table<Configuracoes>;
+  rascunhos!: Table<Rascunho>;
 
   constructor() {
     super('ContasDB');
@@ -16,11 +24,72 @@ export class ContasDB extends Dexie {
       contas: '++id, dataVencimento, status, categoria, criadoEm',
       lembretes: '++id, contaId, proximaNotificacao, ativo',
       configuracoes: '++id',
+      rascunhos: 'id, atualizadoEm',
     });
   }
 }
 
 export const db = new ContasDB();
+
+/**
+ * Salva um rascunho automaticamente
+ */
+export async function salvarRascunho(id: string, dados: Record<string, any>) {
+  try {
+    const rascunhoExistente = await db.rascunhos.get(id);
+    
+    if (rascunhoExistente) {
+      await db.rascunhos.update(id, {
+        dados,
+        atualizadoEm: new Date(),
+      });
+    } else {
+      await db.rascunhos.add({
+        id,
+        dados,
+        criadoEm: new Date(),
+        atualizadoEm: new Date(),
+      });
+    }
+  } catch (erro) {
+    console.error('Erro ao salvar rascunho:', erro);
+  }
+}
+
+/**
+ * Recupera um rascunho salvo
+ */
+export async function obterRascunho(id: string) {
+  try {
+    return await db.rascunhos.get(id);
+  } catch (erro) {
+    console.error('Erro ao obter rascunho:', erro);
+    return null;
+  }
+}
+
+/**
+ * Deleta um rascunho após salvar com sucesso
+ */
+export async function deletarRascunho(id: string) {
+  try {
+    await db.rascunhos.delete(id);
+  } catch (erro) {
+    console.error('Erro ao deletar rascunho:', erro);
+  }
+}
+
+/**
+ * Lista todos os rascunhos salvos
+ */
+export async function listarRascunhos() {
+  try {
+    return await db.rascunhos.toArray();
+  } catch (erro) {
+    console.error('Erro ao listar rascunhos:', erro);
+    return [];
+  }
+}
 
 /**
  * Inicializa as configurações padrão se não existirem

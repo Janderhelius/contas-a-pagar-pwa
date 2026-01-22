@@ -21,6 +21,9 @@ import { ArrowLeft, Save, Home } from 'lucide-react';
 import { Link } from 'wouter';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { UnsavedChangesDialog, ConfirmDiscardDialog, UnsavedIndicator } from '@/components/UnsavedChangesDialog';
+import { useDraftAutoSave } from '@/hooks/useDraftAutoSave';
+import { DraftRecoveryDialog, DraftAutoSaveIndicator } from '@/components/DraftRecoveryDialog';
+import { obterRascunho } from '@/lib/db';
 import { useEffect as useEffectRef } from 'react';
 
 export default function FormularioConta() {
@@ -63,6 +66,30 @@ export default function FormularioConta() {
   const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [unsavedError, setUnsavedError] = useState<string | null>(null);
+  const [showDraftRecovery, setShowDraftRecovery] = useState(false);
+  const [rascunhoRecuperado, setRascunhoRecuperado] = useState(false);
+
+  // Auto-save de rascunho
+  const { salvando: salvandoRascunho, ultimoSalvo, temRascunho, recuperarRascunho, limparRascunho } = useDraftAutoSave({
+    rascunhoId: 'formularioConta',
+    dados: formData,
+    ativo: !isEdicao && !rascunhoRecuperado, // Só salva em nova conta e se não recuperou rascunho
+    intervalo: 30000, // 30 segundos
+  });
+
+  // Verifica se existe rascunho ao abrir formulário de nova conta
+  useEffect(() => {
+    const verificarRascunho = async () => {
+      if (!isEdicao && !rascunhoRecuperado) {
+        const rascunho = await obterRascunho('formularioConta');
+        if (rascunho) {
+          setShowDraftRecovery(true);
+        }
+      }
+    };
+
+    verificarRascunho();
+  }, [isEdicao, rascunhoRecuperado]);
 
   // Carrega dados da conta se estiver editando
   useEffect(() => {
@@ -233,6 +260,9 @@ export default function FormularioConta() {
       // Atualizar snapshot e limpar dirty
       setInitialFormData(formData);
       setIsDirty(false);
+
+      // Limpar rascunho após salvar com sucesso
+      await limparRascunho();
 
       // Redirecionar para lista
       window.location.href = '/contas';
@@ -571,6 +601,30 @@ export default function FormularioConta() {
           </div>
         </form>
       </main>
+
+      {/* Indicador de auto-save */}
+      <DraftAutoSaveIndicator salvando={salvandoRascunho} ultimoSalvo={ultimoSalvo} />
+
+      {/* Modal de recuperação de rascunho */}
+      <DraftRecoveryDialog
+        aberto={showDraftRecovery}
+        ultimoSalvo={ultimoSalvo}
+        onRecuperar={async () => {
+          const rascunho = await recuperarRascunho();
+          if (rascunho) {
+            setFormData(rascunho as typeof formData);
+            setInitialFormData(rascunho as typeof formData);
+            setRascunhoRecuperado(true);
+            setShowDraftRecovery(false);
+            toast.success('Rascunho recuperado com sucesso!');
+          }
+        }}
+        onDescartar={async () => {
+          await limparRascunho();
+          setShowDraftRecovery(false);
+          setRascunhoRecuperado(true);
+        }}
+      />
 
       {/* Diálogos de confirmação */}
       <UnsavedChangesDialog
