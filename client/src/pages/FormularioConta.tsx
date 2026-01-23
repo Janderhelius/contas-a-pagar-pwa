@@ -25,6 +25,10 @@ import { useDraftAutoSave } from '@/hooks/useDraftAutoSave';
 import { DraftRecoveryDialog, DraftAutoSaveIndicator } from '@/components/DraftRecoveryDialog';
 import { obterRascunho } from '@/lib/db';
 import { useEffect as useEffectRef } from 'react';
+import { obterCategorias } from '@/lib/categorias';
+import { NovaCategoriModal } from '@/components/NovaCategoriModal';
+import { GerenciarCategoriasModal } from '@/components/GerenciarCategoriasModal';
+import { Plus, Settings } from 'lucide-react';
 
 export default function FormularioConta() {
   const [, paramsNova] = useRoute('/contas/nova');
@@ -68,6 +72,10 @@ export default function FormularioConta() {
   const [unsavedError, setUnsavedError] = useState<string | null>(null);
   const [showDraftRecovery, setShowDraftRecovery] = useState(false);
   const [rascunhoRecuperado, setRascunhoRecuperado] = useState(false);
+  const [categorias, setCategorias] = useState<any[]>([]);
+  const [showNovaCategoria, setShowNovaCategoria] = useState(false);
+  const [showGerenciarCategorias, setShowGerenciarCategorias] = useState(false);
+  const [carregandoCategorias, setCarregandoCategorias] = useState(true);
 
   // Auto-save de rascunho
   const { salvando: salvandoRascunho, ultimoSalvo, temRascunho, recuperarRascunho, limparRascunho } = useDraftAutoSave({
@@ -76,6 +84,22 @@ export default function FormularioConta() {
     ativo: !isEdicao && !rascunhoRecuperado, // Só salva em nova conta e se não recuperou rascunho
     intervalo: 30000, // 30 segundos
   });
+
+  // Carrega categorias ao abrir
+  useEffect(() => {
+    const carregarCategorias = async () => {
+      try {
+        const cats = await obterCategorias();
+        setCategorias(cats);
+      } catch (erro) {
+        console.error('Erro ao carregar categorias:', erro);
+      } finally {
+        setCarregandoCategorias(false);
+      }
+    };
+
+    carregarCategorias();
+  }, []);
 
   // Verifica se existe rascunho ao abrir formulário de nova conta
   useEffect(() => {
@@ -323,14 +347,20 @@ export default function FormularioConta() {
 
                 <div>
                   <Label htmlFor="categoria">Categoria *</Label>
-                  <Select value={formData.categoria} onValueChange={(value) => handleChange('categoria', value)}>
+                  <Select value={formData.categoria} onValueChange={(value) => {
+                    if (value === '__nova__') setShowNovaCategoria(true);
+                    else if (value === '__gerenciar__') setShowGerenciarCategorias(true);
+                    else handleChange('categoria', value);
+                  }}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIAS_PADRAO.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      {categorias.map(cat => (
+                        <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                       ))}
+                      <SelectItem value="__nova__">+ Nova categoria</SelectItem>
+                      <SelectItem value="__gerenciar__">⚙ Gerenciar categorias</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -642,6 +672,25 @@ export default function FormularioConta() {
           setShowUnsavedDialog(false);
         }}
         onClearError={() => setUnsavedError(null)}
+      />
+
+
+      {/* Modais de categorias */}
+      <NovaCategoriModal
+        aberto={showNovaCategoria}
+        onClose={() => setShowNovaCategoria(false)}
+        onCriada={(categoria) => {
+          handleChange('categoria', categoria.name);
+          setCategorias([...categorias, categoria]);
+        }}
+      />
+
+      <GerenciarCategoriasModal
+        aberto={showGerenciarCategorias}
+        onClose={() => setShowGerenciarCategorias(false)}
+        onAtualizado={() => {
+          obterCategorias().then(cats => setCategorias(cats));
+        }}
       />
 
       <ConfirmDiscardDialog

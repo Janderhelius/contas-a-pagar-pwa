@@ -5,8 +5,18 @@
 import Dexie, { Table } from 'dexie';
 import { Conta, Lembrete, Configuracoes } from './types';
 
+export interface Categoria {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  criadoEm: Date;
+  atualizadoEm: Date;
+}
+
 export interface Rascunho {
-  id: string; // 'formularioConta', 'detalhesConta', 'configuracoes'
+  id: string;
   dados: Record<string, any>;
   criadoEm: Date;
   atualizadoEm: Date;
@@ -17,14 +27,16 @@ export class ContasDB extends Dexie {
   lembretes!: Table<Lembrete>;
   configuracoes!: Table<Configuracoes>;
   rascunhos!: Table<Rascunho>;
+  categorias!: Table<Categoria>;
 
   constructor() {
     super('ContasDB');
-    this.version(1).stores({
+    this.version(2).stores({
       contas: '++id, dataVencimento, status, categoria, criadoEm',
       lembretes: '++id, contaId, proximaNotificacao, ativo',
       configuracoes: '++id',
       rascunhos: 'id, atualizadoEm',
+      categorias: 'id, isDefault, isActive, sortOrder',
     });
   }
 }
@@ -88,6 +100,41 @@ export async function listarRascunhos() {
   } catch (erro) {
     console.error('Erro ao listar rascunhos:', erro);
     return [];
+  }
+}
+
+/**
+ * Inicializa as categorias padrão na primeira execução
+ */
+export async function inicializarCategoriasPadrao() {
+  try {
+    const existentes = await db.categorias.toArray();
+    if (existentes.length === 0) {
+      const categoriasPadrao = [
+        { name: 'Moradia', sortOrder: 1 },
+        { name: 'Cartão', sortOrder: 2 },
+        { name: 'Serviços', sortOrder: 3 },
+        { name: 'Saúde', sortOrder: 4 },
+        { name: 'Educação', sortOrder: 5 },
+        { name: 'Transporte', sortOrder: 6 },
+        { name: 'Lazer', sortOrder: 7 },
+        { name: 'Outros', sortOrder: 8 },
+      ];
+
+      const agora = new Date();
+      const categoriasParaAdicionar = categoriasPadrao.map((cat, idx) => ({
+        id: `default-${idx}`,
+        name: cat.name,
+        isDefault: true,
+        isActive: true,
+        sortOrder: cat.sortOrder,
+        criadoEm: agora,
+        atualizadoEm: agora,
+      }));
+      await db.categorias.bulkAdd(categoriasParaAdicionar);
+    }
+  } catch (erro) {
+    console.error('Erro ao inicializar categorias padrão:', erro);
   }
 }
 

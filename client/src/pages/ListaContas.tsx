@@ -2,13 +2,15 @@
  * Página ListaContas - Listagem com filtros avançados
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useContas } from '@/contexts/ContasContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'wouter';
 import { formatarMoeda, formatarData, obterIconeCategoria, descricaoDiasRestantes } from '@/lib/formatadores';
 import { CATEGORIAS_PADRAO, StatusConta } from '@/lib/types';
+import { obterCategorias } from '@/lib/categorias';
+import { Categoria } from '@/lib/db';
 import { Plus, Search, Filter, Trash2, Edit2, Check, Home } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,6 +25,21 @@ export default function ListaContas() {
   const [ordenacao, setOrdenacao] = useState<'vencimento' | 'valor' | 'categoria'>('vencimento');
   const [valorMin, setValorMin] = useState('');
   const [valorMax, setValorMax] = useState('');
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+
+  // Carregar categorias
+  useEffect(() => {
+    const carregarCategorias = async () => {
+      try {
+        const cats = await obterCategorias();
+        setCategorias(cats);
+      } catch (erro) {
+        console.error('Erro ao carregar categorias:', erro);
+      }
+    };
+    carregarCategorias();
+  }, []);
+
 
   const contasFiltradas = useMemo(() => {
     let resultado = contas.filter(c => {
@@ -185,15 +202,15 @@ export default function ListaContas() {
               <div>
                 <Label className="mb-2 block font-semibold">Categoria</Label>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {CATEGORIAS_PADRAO.map(categoria => (
-                    <div key={categoria} className="flex items-center">
+                  {categorias.map(categoria => (
+                    <div key={categoria.id} className="flex items-center">
                       <Checkbox
-                        id={`cat-${categoria}`}
-                        checked={categoriaFiltro.includes(categoria)}
-                        onCheckedChange={() => handleToggleCategoria(categoria)}
+                        id={`cat-${categoria.id}`}
+                        checked={categoriaFiltro.includes(categoria.name)}
+                        onCheckedChange={() => handleToggleCategoria(categoria.name)}
                       />
-                      <Label htmlFor={`cat-${categoria}`} className="ml-2 cursor-pointer">
-                        {obterIconeCategoria(categoria)} {categoria}
+                      <Label htmlFor={`cat-${categoria.id}`} className="ml-2 cursor-pointer">
+                        {obterIconeCategoria(categoria.name)} {categoria.name}
                       </Label>
                     </div>
                   ))}
