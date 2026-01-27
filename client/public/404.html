@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Vencio - Contas a Pagar</title>
+    <script type="text/javascript">
+      // Redirect to index.html for SPA routing on GitHub Pages
+      var pathSegmentsToKeep = 1;
+      var l = window.location;
+      sessionStorage.redirect = l.pathname.slice(0, l.pathname.lastIndexOf('/') + 1).slice(l.pathname.indexOf('/', 1) + 1) + l.search + l.hash;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/'
+      );
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
