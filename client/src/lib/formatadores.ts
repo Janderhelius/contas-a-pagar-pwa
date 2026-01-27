@@ -95,14 +95,25 @@ export function obterCorStatus(status: string): string {
  */
 export function obterIconeCategoria(categoria: string): string {
   const iconesCategoria: Record<string, string> = {
-    Moradia: '🏠',
-    Cartão: '💳',
-    Serviços: '🔧',
-    Saúde: '⚕️',
-    Educação: '📚',
-    Transporte: '🚗',
-    Lazer: '🎮',
-    Outros: '📦',
+    // Categorias Padrão
+    'Aluguel': '🏠',
+    'Condomínio': '🏢',
+    'Luz': '💡',
+    'Internet': '🌐',
+    'Fornecedores': '🤝',
+    'Alimentação': '🍕',
+    'Lanche': '🍔',
+    'Passagem': '🚌',
+    'Mercado': '🛒',
+    'Serviços': '🔧',
+    // Legado/Compatibilidade
+    'Moradia': '🏠',
+    'Cartão': '💳',
+    'Saúde': '⚕️',
+    'Educação': '📚',
+    'Transporte': '🚗',
+    'Lazer': '🎮',
+    'Outros': '📦',
   };
   return iconesCategoria[categoria] || '📋';
 }

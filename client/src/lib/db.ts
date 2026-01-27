@@ -44,6 +44,86 @@ export class ContasDB extends Dexie {
 export const db = new ContasDB();
 
 /**
+ * Categorias padrão obrigatórias do sistema
+ */
+const CATEGORIAS_PADRAO_SEED = [
+  { name: 'Aluguel', sortOrder: 1 },
+  { name: 'Condomínio', sortOrder: 2 },
+  { name: 'Luz', sortOrder: 3 },
+  { name: 'Internet', sortOrder: 4 },
+  { name: 'Fornecedores', sortOrder: 5 },
+  { name: 'Alimentação', sortOrder: 6 },
+  { name: 'Lanche', sortOrder: 7 },
+  { name: 'Passagem', sortOrder: 8 },
+  { name: 'Mercado', sortOrder: 9 },
+  { name: 'Serviços', sortOrder: 10 },
+];
+
+/**
+ * Normaliza nome de categoria para comparação (case-insensitive, sem acentos)
+ */
+function normalizarNomeCategoria(nome: string): string {
+  return nome
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * Seed robusto de categorias padrão com upsert
+ * - Cria categorias padrão se não existirem
+ * - Reativa categorias padrão marcadas como inativas
+ * - Evita duplicatas por normalização de nome
+ */
+export async function seedCategoriasPadrao() {
+  try {
+    const agora = new Date();
+    const todasAsCategorias = await db.categorias.toArray();
+
+    for (const catPadrao of CATEGORIAS_PADRAO_SEED) {
+      const nomeNormalizado = normalizarNomeCategoria(catPadrao.name);
+
+      // Procura por categoria com mesmo nome normalizado
+      const categoriaExistente = todasAsCategorias.find(
+        c => normalizarNomeCategoria(c.name) === nomeNormalizado
+      );
+
+      if (categoriaExistente) {
+        // Se existe, garante que está ativa e marcada como padrão
+        if (!categoriaExistente.isActive || !categoriaExistente.isDefault) {
+          await db.categorias.update(categoriaExistente.id, {
+            isActive: true,
+            isDefault: true,
+            atualizadoEm: agora,
+          });
+          console.log(`✓ Categoria padrão reativada: ${catPadrao.name}`);
+        }
+      } else {
+        // Se não existe, cria nova
+        const novaCategoria: Categoria = {
+          id: `default-${Date.now()}-${Math.random()}`,
+          name: catPadrao.name,
+          isDefault: true,
+          isActive: true,
+          sortOrder: catPadrao.sortOrder,
+          criadoEm: agora,
+          atualizadoEm: agora,
+        };
+
+        await db.categorias.add(novaCategoria);
+        console.log(`✓ Categoria padrão criada: ${catPadrao.name}`);
+      }
+    }
+
+    console.log('✓ Seed de categorias padrão concluído com sucesso');
+  } catch (erro) {
+    console.error('Erro ao fazer seed de categorias padrão:', erro);
+    throw erro;
+  }
+}
+
+/**
  * Salva um rascunho automaticamente
  */
 export async function salvarRascunho(id: string, dados: Record<string, any>) {
@@ -105,6 +185,7 @@ export async function listarRascunhos() {
 
 /**
  * Inicializa as categorias padrão na primeira execução
+ * DEPRECATED: Use seedCategoriasPadrao() em vez disso
  */
 export async function inicializarCategoriasPadrao() {
   try {

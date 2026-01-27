@@ -14,7 +14,7 @@ export function gerarDadosExemplo(): { contas: Conta[]; lembretes: Lembrete[] } 
     {
       id: uuid(),
       titulo: 'Aluguel',
-      categoria: 'Moradia',
+      categoria: 'Aluguel',
       valor: 1500.00,
       dataEmissao: new Date(hoje.getFullYear(), hoje.getMonth(), 1),
       dataVencimento: new Date(hoje.getFullYear(), hoje.getMonth(), 5),
@@ -30,7 +30,7 @@ export function gerarDadosExemplo(): { contas: Conta[]; lembretes: Lembrete[] } 
     {
       id: uuid(),
       titulo: 'Conta de Água',
-      categoria: 'Moradia',
+      categoria: 'Serviços',
       valor: 85.50,
       dataEmissao: new Date(hoje.getFullYear(), hoje.getMonth(), 10),
       dataVencimento: new Date(hoje.getFullYear(), hoje.getMonth(), 20),
@@ -46,7 +46,7 @@ export function gerarDadosExemplo(): { contas: Conta[]; lembretes: Lembrete[] } 
     {
       id: uuid(),
       titulo: 'Conta de Luz',
-      categoria: 'Moradia',
+      categoria: 'Luz',
       valor: 250.00,
       dataEmissao: new Date(hoje.getFullYear(), hoje.getMonth(), 10),
       dataVencimento: new Date(hoje.getFullYear(), hoje.getMonth(), 25),

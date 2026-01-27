@@ -45,49 +45,52 @@ export function UnsavedChangesDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-600" />
-            <DialogTitle>Alterações não salvas</DialogTitle>
+            <div className="flex-shrink-0">
+              <AlertCircle className="w-6 h-6 text-yellow-500" />
+            </div>
+            <DialogTitle className="text-lg font-semibold">Alterações não salvas</DialogTitle>
           </div>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+        <div className="space-y-4 py-4">
+          <p className="text-sm text-gray-700">
             Você fez mudanças que ainda não foram salvas. O que deseja fazer?
           </p>
 
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-700 font-medium">{error}</p>
             </div>
           )}
         </div>
 
-        <DialogFooter className="flex gap-2 flex-row-reverse">
+        <DialogFooter className="flex gap-3 flex-col-reverse sm:flex-row sm:justify-end">
           <Button
             onClick={onContinueEditing}
             variant="outline"
             disabled={isLoading}
+            className="w-full sm:w-auto"
           >
             Continuar Editando
-          </Button>
-
-          <Button
-            onClick={handleSaveClick}
-            disabled={isLoading}
-            className="gap-2 bg-blue-600 hover:bg-blue-700"
-          >
-            <Save className="w-4 h-4" />
-            {isLoading ? 'Salvando...' : 'Salvar e Sair'}
           </Button>
 
           <Button
             onClick={onDiscardAndExit}
             variant="destructive"
             disabled={isLoading}
-            className="gap-2"
+            className="w-full sm:w-auto gap-2"
           >
             <Trash2 className="w-4 h-4" />
             Sair sem Salvar
+          </Button>
+
+          <Button
+            onClick={handleSaveClick}
+            disabled={isLoading}
+            className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Save className="w-4 h-4" />
+            {isLoading ? 'Salvando...' : 'Salvar e Sair'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -119,22 +122,25 @@ export function ConfirmDiscardDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <DialogTitle>Descartar alterações?</DialogTitle>
+            <div className="flex-shrink-0">
+              <AlertCircle className="w-6 h-6 text-red-500" />
+            </div>
+            <DialogTitle className="text-lg font-semibold">Descartar alterações?</DialogTitle>
           </div>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+        <div className="space-y-4 py-4">
+          <p className="text-sm text-gray-700">
             Você perderá todas as mudanças feitas. Esta ação é irreversível.
           </p>
         </div>
 
-        <DialogFooter className="flex gap-2 flex-row-reverse">
+        <DialogFooter className="flex gap-3 flex-col-reverse sm:flex-row sm:justify-end">
           <Button
             onClick={onCancel}
             variant="outline"
             disabled={isLoading}
+            className="w-full sm:w-auto"
           >
             Cancelar
           </Button>
@@ -143,7 +149,7 @@ export function ConfirmDiscardDialog({
             onClick={onConfirmDiscard}
             variant="destructive"
             disabled={isLoading}
-            className="gap-2"
+            className="w-full sm:w-auto gap-2"
           >
             <Trash2 className="w-4 h-4" />
             {isLoading ? 'Descartando...' : 'Descartar e Sair'}

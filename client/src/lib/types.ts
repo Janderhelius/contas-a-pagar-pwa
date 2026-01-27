@@ -8,16 +8,7 @@ export type TipoRecorrencia = 'Nenhuma' | 'Mensal' | 'Semanal' | 'Anual' | 'Pers
 export type FormaPagamento = 'PIX' | 'Boleto' | 'Cartão' | 'Dinheiro' | 'Transferência' | 'Outro';
 export type TipoLembrete = 'vencimento' | 'diasAntes';
 
-export const CATEGORIAS_PADRAO = [
-  'Moradia',
-  'Cartão',
-  'Serviços',
-  'Saúde',
-  'Educação',
-  'Transporte',
-  'Lazer',
-  'Outros',
-];
+// CATEGORIAS_PADRAO removido - use obterCategorias() de @/lib/categorias
 
 export interface Comprovante {
   nome: string;

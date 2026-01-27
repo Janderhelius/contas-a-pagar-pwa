@@ -11,7 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { CATEGORIAS_PADRAO, FormaPagamento } from '@/lib/types';
+import { FormaPagamento } from '@/lib/types';
+import { obterCategorias } from '@/lib/categorias';
+import { Categoria } from '@/lib/db';
 import { formatarData, formatarMoeda, parseDataBrasileira } from '@/lib/formatadores';
 import { Home, Download, RotateCcw } from 'lucide-react';
 import { Link } from 'wouter';
@@ -32,6 +34,7 @@ const FORMAS_PAGAMENTO: FormaPagamento[] = ['PIX', 'Boleto', 'Cartão', 'Dinheir
 export default function Relatorios() {
   const { contas } = useContas();
   const [carregando, setCarregando] = useState(false);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
 
   // Filtros
   const [dataInicio, setDataInicio] = useState(() => {
@@ -69,6 +72,19 @@ export default function Relatorios() {
       busca: busca || undefined,
     };
   }, [dataInicio, dataFim, statusSelecionados, categoriasSelecionadas, formasSelecionadas, busca]);
+
+  // Carregar categorias ao montar
+  useEffect(() => {
+    const carregarCategorias = async () => {
+      try {
+        const cats = await obterCategorias();
+        setCategorias(cats);
+      } catch (erro) {
+        console.error('Erro ao carregar categorias:', erro);
+      }
+    };
+    carregarCategorias();
+  }, []);
 
   // Carregar relatórios
   const carregarRelatorios = async () => {
@@ -219,21 +235,21 @@ export default function Relatorios() {
               <div>
                 <Label>Categorias</Label>
                 <div className="mt-2 space-y-2 max-h-32 overflow-y-auto">
-                  {CATEGORIAS_PADRAO.map(cat => (
-                    <div key={cat} className="flex items-center">
+                  {categorias.map(cat => (
+                    <div key={cat.id} className="flex items-center">
                       <Checkbox
-                        id={`cat-${cat}`}
-                        checked={categoriasSelecionadas.includes(cat)}
+                        id={`cat-${cat.id}`}
+                        checked={categoriasSelecionadas.includes(cat.name)}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            setCategoriasSelecionadas([...categoriasSelecionadas, cat]);
+                            setCategoriasSelecionadas([...categoriasSelecionadas, cat.name]);
                           } else {
-                            setCategoriasSelecionadas(categoriasSelecionadas.filter(c => c !== cat));
+                            setCategoriasSelecionadas(categoriasSelecionadas.filter(c => c !== cat.name));
                           }
                         }}
                       />
-                      <label htmlFor={`cat-${cat}`} className="ml-2 text-sm cursor-pointer">
-                        {cat}
+                      <label htmlFor={`cat-${cat.id}`} className="ml-2 text-sm cursor-pointer">
+                        {cat.name}
                       </label>
                     </div>
                   ))}

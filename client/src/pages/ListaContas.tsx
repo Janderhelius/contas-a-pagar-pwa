@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'wouter';
 import { formatarMoeda, formatarData, obterIconeCategoria, descricaoDiasRestantes } from '@/lib/formatadores';
-import { CATEGORIAS_PADRAO, StatusConta } from '@/lib/types';
+import { StatusConta } from '@/lib/types';
 import { obterCategorias } from '@/lib/categorias';
 import { Categoria } from '@/lib/db';
 import { Plus, Search, Filter, Trash2, Edit2, Check, Home } from 'lucide-react';

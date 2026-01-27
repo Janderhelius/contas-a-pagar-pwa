@@ -6,7 +6,19 @@ import { db, Categoria } from './db';
 import { nanoid } from 'nanoid';
 
 /**
+ * Normaliza nome de categoria para comparação (case-insensitive, sem acentos)
+ */
+function normalizarNomeCategoria(nome: string): string {
+  return nome
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
  * Obter todas as categorias ativas ordenadas
+ * Retorna categorias padrão + personalizadas, ambas ativas
  */
 export async function obterCategorias(): Promise<Categoria[]> {
   try {
@@ -21,7 +33,7 @@ export async function obterCategorias(): Promise<Categoria[]> {
 }
 
 /**
- * Obter categorias padrão
+ * Obter categorias padrão ativas
  */
 export async function obterCategoriasPadrao(): Promise<Categoria[]> {
   try {
@@ -36,7 +48,7 @@ export async function obterCategoriasPadrao(): Promise<Categoria[]> {
 }
 
 /**
- * Obter categorias personalizadas
+ * Obter categorias personalizadas ativas
  */
 export async function obterCategoriasPersonalizadas(): Promise<Categoria[]> {
   try {
@@ -52,6 +64,7 @@ export async function obterCategoriasPersonalizadas(): Promise<Categoria[]> {
 
 /**
  * Criar nova categoria personalizada
+ * Valida contra duplicatas (case-insensitive e sem acentos)
  */
 export async function criarCategoria(nome: string): Promise<Categoria | null> {
   try {
@@ -60,10 +73,10 @@ export async function criarCategoria(nome: string): Promise<Categoria | null> {
       throw new Error('Nome da categoria deve ter pelo menos 2 caracteres');
     }
 
-    // Verificar duplicatas (case-insensitive)
+    // Verificar duplicatas (case-insensitive e sem acentos)
     const existentes = await db.categorias.toArray();
-    const nomeLower = nome.toLowerCase();
-    if (existentes.some(c => c.name.toLowerCase() === nomeLower)) {
+    const nomeLower = normalizarNomeCategoria(nome);
+    if (existentes.some(c => normalizarNomeCategoria(c.name) === nomeLower)) {
       throw new Error('Categoria com este nome já existe');
     }
 
@@ -89,7 +102,8 @@ export async function criarCategoria(nome: string): Promise<Categoria | null> {
 }
 
 /**
- * Editar nome de categoria
+ * Editar nome de categoria (apenas personalizadas)
+ * Categorias padrão não podem ser deletadas, mas podem ser renomeadas
  */
 export async function editarCategoria(id: string, novoNome: string): Promise<void> {
   try {
@@ -102,10 +116,10 @@ export async function editarCategoria(id: string, novoNome: string): Promise<voi
       throw new Error('Nome da categoria deve ter pelo menos 2 caracteres');
     }
 
-    // Verificar duplicatas (case-insensitive)
+    // Verificar duplicatas (case-insensitive e sem acentos)
     const existentes = await db.categorias.toArray();
-    const nomeLower = novoNome.toLowerCase();
-    if (existentes.some(c => c.id !== id && c.name.toLowerCase() === nomeLower)) {
+    const nomeLower = normalizarNomeCategoria(novoNome);
+    if (existentes.some(c => c.id !== id && normalizarNomeCategoria(c.name) === nomeLower)) {
       throw new Error('Categoria com este nome já existe');
     }
 
@@ -121,6 +135,7 @@ export async function editarCategoria(id: string, novoNome: string): Promise<voi
 
 /**
  * Deletar categoria personalizada
+ * Categorias padrão NÃO podem ser deletadas
  * Se estiver em uso, retorna erro com lista de contas
  */
 export async function deletarCategoria(id: string): Promise<void> {
@@ -131,7 +146,7 @@ export async function deletarCategoria(id: string): Promise<void> {
     }
 
     if (categoria.isDefault) {
-      throw new Error('Não é possível deletar categorias padrão');
+      throw new Error('Não é possível deletar categorias padrão. Elas são obrigatórias no sistema.');
     }
 
     // Verificar se está em uso
@@ -153,7 +168,8 @@ export async function deletarCategoria(id: string): Promise<void> {
 }
 
 /**
- * Substituir categoria em todas as contas
+ * Substituir categoria em todas as contas e deletar a categoria original
+ * Usado quando usuário quer deletar uma categoria que está em uso
  */
 export async function substituirCategoriaEmContas(
   categoriaDeletarId: string,
@@ -167,6 +183,10 @@ export async function substituirCategoriaEmContas(
       throw new Error('Categoria não encontrada');
     }
 
+    if (categoriaDeletar.isDefault) {
+      throw new Error('Não é possível deletar categorias padrão');
+    }
+
     // Atualizar todas as contas
     const contas = await db.contas
       .where('categoria')
@@ -176,6 +196,7 @@ export async function substituirCategoriaEmContas(
     for (const conta of contas) {
       await db.contas.update(conta.id, {
         categoria: categoriaSubstituir.name,
+        atualizadoEm: new Date(),
       });
     }
 
@@ -191,6 +212,7 @@ export async function substituirCategoriaEmContas(
 
 /**
  * Desativar categoria (soft delete)
+ * Categorias padrão NÃO podem ser desativadas
  */
 export async function desativarCategoria(id: string): Promise<void> {
   try {
@@ -200,7 +222,7 @@ export async function desativarCategoria(id: string): Promise<void> {
     }
 
     if (categoria.isDefault) {
-      throw new Error('Não é possível desativar categorias padrão');
+      throw new Error('Não é possível desativar categorias padrão. Elas são obrigatórias no sistema.');
     }
 
     await db.categorias.update(id, {
@@ -226,12 +248,15 @@ export async function obterCategoriaPorId(id: string): Promise<Categoria | undef
 }
 
 /**
- * Obter categoria por nome
+ * Obter categoria por nome (ativa)
+ * Busca case-insensitive
  */
 export async function obterCategoriaPorNome(nome: string): Promise<Categoria | undefined> {
   try {
     const categorias = await db.categorias.toArray();
-    return categorias.find(c => c.name.toLowerCase() === nome.toLowerCase() && c.isActive);
+    return categorias.find(
+      c => c.name.toLowerCase() === nome.toLowerCase() && c.isActive
+    );
   } catch (erro) {
     console.error('Erro ao obter categoria por nome:', erro);
     return undefined;
@@ -239,7 +264,7 @@ export async function obterCategoriaPorNome(nome: string): Promise<Categoria | u
 }
 
 /**
- * Verificar se categoria está em uso
+ * Verificar se categoria está em uso (por ID)
  */
 export async function verificarCategoriaEmUso(id: string): Promise<number> {
   try {
@@ -271,6 +296,30 @@ export async function reordenarCategorias(ids: string[]): Promise<void> {
     }
   } catch (erro) {
     console.error('Erro ao reordenar categorias:', erro);
+    throw erro;
+  }
+}
+
+/**
+ * Reativar categoria padrão (caso tenha sido desativada por erro)
+ */
+export async function reativarCategoriaPadrao(id: string): Promise<void> {
+  try {
+    const categoria = await db.categorias.get(id);
+    if (!categoria) {
+      throw new Error('Categoria não encontrada');
+    }
+
+    if (!categoria.isDefault) {
+      throw new Error('Apenas categorias padrão podem ser reativadas por este método');
+    }
+
+    await db.categorias.update(id, {
+      isActive: true,
+      atualizadoEm: new Date(),
+    });
+  } catch (erro) {
+    console.error('Erro ao reativar categoria padrão:', erro);
     throw erro;
   }
 }

@@ -14,8 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { CATEGORIAS_PADRAO, FormaPagamento, TipoRecorrencia } from '@/lib/types';
-import { validarConta, temErros } from '@/lib/validacoes';
+import { FormaPagamento, TipoRecorrencia } from '@/lib/types';
+import { validarContaCompleta, temErros, formatarErros } from '@/lib/validacoes';
 import { parseDataBrasileira, formatarData } from '@/lib/formatadores';
 import { ArrowLeft, Save, Home } from 'lucide-react';
 import { Link } from 'wouter';
@@ -229,10 +229,33 @@ export default function FormularioConta() {
         valorPago: formData.jaFoiPaga ? Number(formData.valorPago || formData.valor) : undefined,
       };
 
-      const novosErros = validarConta(contaParaValidar, []);
+      // Preparar dados do formulário para validação
+      const formDataParaValidar: any = {
+        titulo: formData.titulo,
+        categoria: formData.categoria,
+        valor: formData.valor,
+        dataEmissao,
+        dataVencimento,
+        formaPagamento: formData.formaPagamento,
+        recorrencia: formData.recorrencia,
+        intervaloRecorrencia: formData.intervaloRecorrencia,
+        jaFoiPaga: formData.jaFoiPaga,
+        dataPagamento: dataPagamento,
+        valorPago: formData.valorPago,
+        criarLembrete: formData.criarLembrete,
+        diasAntes: formData.diasAntes,
+        horarioLembrete: formData.horarioLembrete,
+      };
+
+      // Obter nomes das categorias disponíveis
+      const nomesCategoriasDisponiveis = categorias.map(c => c.name);
+
+      // Validar
+      const novosErros = validarContaCompleta(formDataParaValidar, nomesCategoriasDisponiveis);
       if (temErros(novosErros)) {
         setErros(novosErros);
-        toast.error('Preencha todos os campos obrigatórios corretamente');
+        const mensagensErro = formatarErros(novosErros);
+        toast.error(mensagensErro || 'Preencha todos os campos obrigatórios corretamente');
         setSalvando(false);
         return;
       }
@@ -254,29 +277,34 @@ export default function FormularioConta() {
 
         // Criar lembrete se solicitado e não for paga
         if (formData.criarLembrete && !formData.jaFoiPaga) {
-          const proximaNotificacao = new Date(dataVencimento);
-          const [hora, minuto] = formData.horarioLembrete.split(':').map(Number);
-          proximaNotificacao.setHours(hora, minuto, 0, 0);
+          try {
+            const proximaNotificacao = new Date(dataVencimento);
+            const [hora, minuto] = formData.horarioLembrete.split(':').map(Number);
+            proximaNotificacao.setHours(hora, minuto, 0, 0);
 
-          // Se for "dias antes", subtrair os dias
-          if (formData.diasAntes !== '0') {
-            proximaNotificacao.setDate(proximaNotificacao.getDate() - Number(formData.diasAntes));
-          }
+            // Se for "dias antes", subtrair os dias
+            if (formData.diasAntes !== '0') {
+              proximaNotificacao.setDate(proximaNotificacao.getDate() - Number(formData.diasAntes));
+            }
 
-          // Obter o ID da conta recém-criada
-          const novasConta = await contas;
-          const ultimaConta = novasConta[novasConta.length - 1];
+            // Obter o ID da conta recém-criada
+            const novasConta = await contas;
+            const ultimaConta = novasConta[novasConta.length - 1];
 
-          if (ultimaConta) {
-            await adicionarLembrete({
-              contaId: ultimaConta.id,
-              tipo: formData.diasAntes === '0' ? 'vencimento' : 'diasAntes',
-              diasAntes: formData.diasAntes === '0' ? undefined : Number(formData.diasAntes),
-              horario: formData.horarioLembrete,
-              ativo: true,
-              repetirSeAtrasado: formData.repetirSeAtrasado,
-              proximaNotificacao,
-            });
+            if (ultimaConta) {
+              await adicionarLembrete({
+                contaId: ultimaConta.id,
+                tipo: formData.diasAntes === '0' ? 'vencimento' : 'diasAntes',
+                diasAntes: formData.diasAntes === '0' ? undefined : Number(formData.diasAntes),
+                horario: formData.horarioLembrete,
+                ativo: true,
+                repetirSeAtrasado: formData.repetirSeAtrasado,
+                proximaNotificacao,
+              });
+            }
+          } catch (erroLembrete) {
+            console.error('Erro ao criar lembrete:', erroLembrete);
+            // Não falhar se o lembrete não for criado
           }
         }
       }
@@ -352,7 +380,7 @@ export default function FormularioConta() {
                     else if (value === '__gerenciar__') setShowGerenciarCategorias(true);
                     else handleChange('categoria', value);
                   }}>
-                    <SelectTrigger>
+                    <SelectTrigger className={erros.categoria ? 'border-red-500' : ''}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -363,6 +391,7 @@ export default function FormularioConta() {
                       <SelectItem value="__gerenciar__">⚙ Gerenciar categorias</SelectItem>
                     </SelectContent>
                   </Select>
+                  {erros.categoria && <p className="text-xs text-red-500 mt-1">{erros.categoria}</p>}
                 </div>
               </div>
 
@@ -410,6 +439,7 @@ export default function FormularioConta() {
                     onChange={(e) => handleChange('dataEmissao', e.target.value)}
                     className={erros.dataEmissao ? 'border-red-500' : ''}
                   />
+                  {erros.dataEmissao && <p className="text-xs text-red-500 mt-1">{erros.dataEmissao}</p>}
                 </div>
 
                 <div>
@@ -422,6 +452,8 @@ export default function FormularioConta() {
                     onChange={(e) => handleChange('dataVencimento', e.target.value)}
                     className={erros.dataVencimento ? 'border-red-500' : ''}
                   />
+                  {erros.dataVencimento && <p className="text-xs text-red-500 mt-1">{erros.dataVencimento}</p>}
+                  {erros.datas && <p className="text-xs text-red-500 mt-1">{erros.datas}</p>}
                 </div>
               </div>
 
@@ -493,7 +525,7 @@ export default function FormularioConta() {
                     </div>
 
                     <div>
-                      <Label htmlFor="valorPago">Valor Pago (BRL)</Label>
+                      <Label htmlFor="valorPago">Valor Pago (BRL) *</Label>
                       <Input
                         id="valorPago"
                         type="number"
@@ -501,8 +533,10 @@ export default function FormularioConta() {
                         value={formData.valorPago || formData.valor}
                         onChange={(e) => handleChange('valorPago', e.target.value)}
                         placeholder="0.00"
+                        className={erros.valorPago ? 'border-red-500' : ''}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Se deixar em branco, usará o valor da conta</p>
+                      {erros.valorPago && <p className="text-xs text-red-500 mt-1">{erros.valorPago}</p>}
+                      {!erros.valorPago && <p className="text-xs text-gray-500 mt-1">Se deixar em branco, usará o valor da conta</p>}
                     </div>
                   </div>
                 </div>
@@ -534,14 +568,16 @@ export default function FormularioConta() {
 
               {formData.recorrencia === 'Personalizada' && (
                 <div>
-                  <Label htmlFor="intervaloRecorrencia">Intervalo (dias)</Label>
+                  <Label htmlFor="intervaloRecorrencia">Intervalo (dias) *</Label>
                   <Input
                     id="intervaloRecorrencia"
                     type="number"
                     value={formData.intervaloRecorrencia}
                     onChange={(e) => handleChange('intervaloRecorrencia', e.target.value)}
                     placeholder="Ex: 15"
+                    className={erros.intervaloRecorrencia ? 'border-red-500' : ''}
                   />
+                  {erros.intervaloRecorrencia && <p className="text-xs text-red-500 mt-1">{erros.intervaloRecorrencia}</p>}
                 </div>
               )}
             </CardContent>
@@ -569,9 +605,9 @@ export default function FormularioConta() {
                   <div className="space-y-4 pl-6 border-l-2 border-blue-200">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="diasAntes">Lembrar</Label>
+                        <Label htmlFor="diasAntes">Lembrar *</Label>
                         <Select value={formData.diasAntes} onValueChange={(value) => handleChange('diasAntes', value)}>
-                          <SelectTrigger>
+                          <SelectTrigger className={erros.diasAntes ? 'border-red-500' : ''}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -586,16 +622,19 @@ export default function FormularioConta() {
                             <SelectItem value="30">1 mês antes</SelectItem>
                           </SelectContent>
                         </Select>
+                        {erros.diasAntes && <p className="text-xs text-red-500 mt-1">{erros.diasAntes}</p>}
                       </div>
 
                       <div>
-                        <Label htmlFor="horarioLembrete">Horário do Lembrete</Label>
+                        <Label htmlFor="horarioLembrete">Horário do Lembrete *</Label>
                         <Input
                           id="horarioLembrete"
                           type="time"
                           value={formData.horarioLembrete}
                           onChange={(e) => handleChange('horarioLembrete', e.target.value)}
+                          className={erros.horarioLembrete ? 'border-red-500' : ''}
                         />
+                        {erros.horarioLembrete && <p className="text-xs text-red-500 mt-1">{erros.horarioLembrete}</p>}
                       </div>
                     </div>
 
@@ -662,7 +701,94 @@ export default function FormularioConta() {
         isLoading={salvando}
         error={unsavedError}
         onSaveAndExit={async () => {
-          await handleSubmit({} as React.FormEvent);
+          try {
+            setSalvando(true);
+            // Validar e salvar
+            const dataEmissao = parseDataBrasileira(formData.dataEmissao);
+            const dataVencimento = parseDataBrasileira(formData.dataVencimento);
+            
+            let dataPagamento: Date | undefined;
+            if (formData.jaFoiPaga) {
+              if (!formData.dataPagamento) {
+                setUnsavedError('Data de pagamento é obrigatória');
+                setSalvando(false);
+                return;
+              }
+              dataPagamento = parseDataBrasileira(formData.dataPagamento);
+            }
+
+            const contaParaValidar = {
+              titulo: formData.titulo,
+              categoria: formData.categoria,
+              valor: Number(formData.valor),
+              dataEmissao,
+              dataVencimento,
+              observacoes: formData.observacoes,
+              formaPagamento: formData.formaPagamento,
+              beneficiario: formData.beneficiario,
+              linkCodigo: formData.linkCodigo,
+              recorrencia: {
+                tipo: formData.recorrencia as TipoRecorrencia,
+                intervalo: formData.recorrencia === 'Personalizada' ? Number(formData.intervaloRecorrencia) : undefined,
+              },
+              status: (formData.jaFoiPaga ? 'Pago' : 'Pendente') as 'Pago' | 'Pendente' | 'Atrasado',
+              dataPagamento: dataPagamento,
+              valorPago: formData.jaFoiPaga ? Number(formData.valorPago || formData.valor) : undefined,
+            };
+
+            const novosErros = validarConta(contaParaValidar, []);
+            if (temErros(novosErros)) {
+              setUnsavedError('Preencha todos os campos obrigatórios corretamente');
+              setSalvando(false);
+              return;
+            }
+
+            if (isEdicao && contaExistente) {
+              await atualizarConta(contaExistente.id, contaParaValidar);
+            } else {
+              await adicionarConta(contaParaValidar);
+              
+              if (formData.criarLembrete && !formData.jaFoiPaga) {
+                const proximaNotificacao = new Date(dataVencimento);
+                const [hora, minuto] = formData.horarioLembrete.split(':').map(Number);
+                proximaNotificacao.setHours(hora, minuto, 0, 0);
+
+                if (formData.diasAntes !== '0') {
+                  proximaNotificacao.setDate(proximaNotificacao.getDate() - Number(formData.diasAntes));
+                }
+
+                const novasConta = await contas;
+                const ultimaConta = novasConta[novasConta.length - 1];
+
+                if (ultimaConta) {
+                  await adicionarLembrete({
+                    contaId: ultimaConta.id,
+                    tipo: formData.diasAntes === '0' ? 'vencimento' : 'diasAntes',
+                    diasAntes: formData.diasAntes === '0' ? undefined : Number(formData.diasAntes),
+                    horario: formData.horarioLembrete,
+                    ativo: true,
+                    repetirSeAtrasado: formData.repetirSeAtrasado,
+                    proximaNotificacao,
+                  });
+                }
+              }
+            }
+
+            setInitialFormData(formData);
+            setIsDirty(false);
+            setShowUnsavedDialog(false);
+            await limparRascunho();
+            toast.success(isEdicao ? 'Conta atualizada com sucesso!' : 'Conta criada com sucesso!');
+            
+            // Navegar após sucesso
+            setTimeout(() => {
+              window.location.href = '/contas';
+            }, 500);
+          } catch (erro) {
+            console.error('Erro ao salvar:', erro);
+            setUnsavedError(erro instanceof Error ? erro.message : 'Erro ao salvar');
+            setSalvando(false);
+          }
         }}
         onDiscardAndExit={() => {
           setShowUnsavedDialog(false);

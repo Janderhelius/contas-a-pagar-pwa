@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'wouter';
 import { formatarMoeda, formatarData, obterIconeCategoria } from '@/lib/formatadores';
-import { CATEGORIAS_PADRAO } from '@/lib/types';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Plus, AlertCircle, CheckCircle2, Clock, Check } from 'lucide-react';
 

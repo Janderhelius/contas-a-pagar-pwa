@@ -1,5 +1,7 @@
 /**
  * Modal para gerenciar categorias (editar/deletar)
+ * - Categorias padrão: apenas leitura com indicador visual
+ * - Categorias personalizadas: editar/deletar com confirmação
  */
 
 import { useState, useEffect } from 'react';
@@ -19,7 +21,7 @@ import {
   verificarCategoriaEmUso,
 } from '@/lib/categorias';
 import { Categoria } from '@/lib/db';
-import { Trash2, Edit2, Check, X } from 'lucide-react';
+import { Trash2, Edit2, Check, X, Lock } from 'lucide-react';
 
 interface GerenciarCategoriasModalProps {
   aberto: boolean;
@@ -135,23 +137,39 @@ export function GerenciarCategoriasModal({ aberto, onClose, onAtualizado }: Gere
           <div className="space-y-6">
             {/* Categorias Padrão */}
             <div>
-              <h3 className="font-semibold text-lg mb-3">Categorias Padrão</h3>
+              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-blue-600" />
+                Categorias Padrão
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Estas categorias são obrigatórias no sistema e não podem ser deletadas.
+              </p>
               <div className="space-y-2">
-                {categoriasPadrao.map(cat => (
-                  <div key={cat.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium">{cat.name}</p>
-                      {categoriasEmUso[cat.id] && (
-                        <p className="text-xs text-gray-500">
-                          Em uso em {categoriasEmUso[cat.id]} conta(s)
-                        </p>
-                      )}
+                {categoriasPadrao.length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">Nenhuma categoria padrão encontrada</p>
+                ) : (
+                  categoriasPadrao.map(cat => (
+                    <div
+                      key={cat.id}
+                      className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-800">{cat.name}</p>
+                        {categoriasEmUso[cat.id] && (
+                          <p className="text-xs text-gray-600">
+                            Em uso em {categoriasEmUso[cat.id]} conta(s)
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
+                          Padrão
+                        </span>
+                        <Lock className="w-4 h-4 text-blue-600" />
+                      </div>
                     </div>
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      Padrão
-                    </span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -159,11 +177,14 @@ export function GerenciarCategoriasModal({ aberto, onClose, onAtualizado }: Gere
             <div>
               <h3 className="font-semibold text-lg mb-3">Categorias Personalizadas</h3>
               {categoriasPersonalizadas.length === 0 ? (
-                <p className="text-gray-500 text-sm">Nenhuma categoria personalizada criada</p>
+                <p className="text-gray-500 text-sm italic">Nenhuma categoria personalizada criada</p>
               ) : (
                 <div className="space-y-2">
                   {categoriasPersonalizadas.map(cat => (
-                    <div key={cat.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div
+                      key={cat.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition"
+                    >
                       {editandoId === cat.id ? (
                         <div className="flex-1 flex gap-2">
                           <Input
@@ -171,6 +192,7 @@ export function GerenciarCategoriasModal({ aberto, onClose, onAtualizado }: Gere
                             onChange={(e) => setEditandoNome(e.target.value)}
                             placeholder="Novo nome"
                             className="flex-1"
+                            autoFocus
                           />
                           <Button
                             size="sm"
@@ -194,9 +216,9 @@ export function GerenciarCategoriasModal({ aberto, onClose, onAtualizado }: Gere
                       ) : (
                         <>
                           <div className="flex-1">
-                            <p className="font-medium">{cat.name}</p>
+                            <p className="font-medium text-gray-800">{cat.name}</p>
                             {categoriasEmUso[cat.id] && (
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-gray-600">
                                 Em uso em {categoriasEmUso[cat.id]} conta(s)
                               </p>
                             )}
@@ -209,6 +231,7 @@ export function GerenciarCategoriasModal({ aberto, onClose, onAtualizado }: Gere
                                 setEditandoId(cat.id);
                                 setEditandoNome(cat.name);
                               }}
+                              title="Editar nome da categoria"
                             >
                               <Edit2 className="w-4 h-4" />
                             </Button>
@@ -220,6 +243,11 @@ export function GerenciarCategoriasModal({ aberto, onClose, onAtualizado }: Gere
                                 setSubstituindoPor('');
                               }}
                               disabled={categoriasEmUso[cat.id] ? true : false}
+                              title={
+                                categoriasEmUso[cat.id]
+                                  ? 'Categoria em uso - substitua antes de deletar'
+                                  : 'Deletar categoria'
+                              }
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -236,28 +264,28 @@ export function GerenciarCategoriasModal({ aberto, onClose, onAtualizado }: Gere
             {deletandoId && (
               <Card className="border-red-200 bg-red-50">
                 <CardHeader>
-                  <CardTitle className="text-red-700">Deletar Categoria</CardTitle>
+                  <CardTitle className="text-red-700">Deletar Categoria Personalizada</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {categoriasEmUso[deletandoId] ? (
                     <>
-                      <p className="text-sm">
+                      <p className="text-sm text-gray-800">
                         Esta categoria está em uso em <strong>{categoriasEmUso[deletandoId]} conta(s)</strong>.
                       </p>
-                      <p className="text-sm">
-                        Selecione uma categoria para substituir:
+                      <p className="text-sm text-gray-800">
+                        Selecione uma categoria para substituir todas as ocorrências:
                       </p>
                       <select
                         value={substituindoPor}
                         onChange={(e) => setSubstituindoPor(e.target.value)}
-                        className="w-full p-2 border rounded"
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="">-- Selecione uma categoria --</option>
                         {[...categoriasPadrao, ...categoriasPersonalizadas]
                           .filter(c => c.id !== deletandoId)
                           .map(c => (
                             <option key={c.id} value={c.id}>
-                              {c.name}
+                              {c.name} {c.isDefault ? '(Padrão)' : ''}
                             </option>
                           ))}
                       </select>
@@ -282,7 +310,7 @@ export function GerenciarCategoriasModal({ aberto, onClose, onAtualizado }: Gere
                     </>
                   ) : (
                     <>
-                      <p className="text-sm">Tem certeza que deseja deletar esta categoria?</p>
+                      <p className="text-sm text-gray-800">Tem certeza que deseja deletar esta categoria?</p>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
