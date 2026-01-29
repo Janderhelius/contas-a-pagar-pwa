@@ -15,18 +15,21 @@ import DetalhesConta from "./pages/DetalhesConta";
 import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
 
+// Obter o base path do Vite (definido em vite.config.ts)
+const BASE_PATH = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/contas"} component={ListaContas} />
-      <Route path={"/contas/nova"} component={FormularioConta} />
-      <Route path={"/contas/:id/editar"} component={FormularioConta} />
-      <Route path={"/contas/:id"} component={DetalhesConta} />
-      <Route path={"/lembretes"} component={CentralLembretes} />
-      <Route path={"/configuracoes"} component={Configuracoes} />
-      <Route path={"/relatorios"} component={Relatorios} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path={BASE_PATH + "/"} component={Home} />
+      <Route path={BASE_PATH + "/contas"} component={ListaContas} />
+      <Route path={BASE_PATH + "/contas/nova"} component={FormularioConta} />
+      <Route path={BASE_PATH + "/contas/:id/editar"} component={FormularioConta} />
+      <Route path={BASE_PATH + "/contas/:id"} component={DetalhesConta} />
+      <Route path={BASE_PATH + "/lembretes"} component={CentralLembretes} />
+      <Route path={BASE_PATH + "/configuracoes"} component={Configuracoes} />
+      <Route path={BASE_PATH + "/relatorios"} component={Relatorios} />
+      <Route path={BASE_PATH + "/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
